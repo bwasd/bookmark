@@ -33,6 +33,7 @@ import (
 )
 
 var (
+	// save bookmarks to $HOME/.bookmark
 	bookmarkDB = filepath.Join(os.Getenv("HOME"), ".bookmark")
 	db         *BookmarkDB
 )
@@ -47,6 +48,7 @@ type Bookmark struct {
 	url []byte
 }
 
+// readBookmarkDB reads the list of bookmarks from a file
 func readBookmarkDB(file string) *BookmarkDB {
 	b := &BookmarkDB{
 		file:      file,
@@ -193,13 +195,6 @@ func savePage(urlstr string) error {
 		break
 	}
 
-	return nil
-}
-
-func saneURL(u *url.URL) error {
-	if u.Port() != "" {
-		return nil
-	}
 	return nil
 }
 

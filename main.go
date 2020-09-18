@@ -2,18 +2,7 @@
 //
 // Bookmark saves a web page corresponding to a URL.
 //
-// See also, RFC 7089.
-
-// TODO: when adding a bookmark check if the URL is archived in (for example)
-// Internet Archive Wayback Machine. If the URL is not archived or out of date,
-// archive the URL.
-// TODO: implement support for the Memento Protocol (RFC 7089).
-// TODO: cleanurl by canonicalization:
-//	- remove locale indicators. Example:
-// https://en.wikipedia.org/wiki/Foo => https://wikipedia.org/wiki/Foo -
-// sanitize URL of tracking parameters
-// (https://en.wikipedia.org/wiki/UTM_parameters) XXX: striphtml by removing
-// extraneous markup, CSS, Javascript and cruft
+// See also: RFC 7089
 package main
 
 import (
@@ -88,51 +77,6 @@ func list() {
 	}
 }
 
-type Closest struct {
-	Available bool   `json:"available"`
-	URL       string `json:"url"`
-	Timestamp string `json:"timestamp"`
-	Status    string `json:"status"`
-}
-
-type ArchivedSnapshots struct {
-	Closest Closest `json:"closest"`
-}
-
-// checkAvailable checks whether or not an archive of a webpage corresponding to
-// a URL is available in the Wayback Machine.
-//
-// By default, a response returning the most recent snapshot is returned. If a
-// timestamp is given in the format YYYYMMDDhhmmss (1-14 digits), the closest
-// snapshot is returned.
-//
-// See Wayback Availability JSON API: https://archive.org/help/wayback_api.php
-func checkAvailable(urlstr, ts string) {
-	v := make(url.Values)
-	v.Set("url", urlstr)
-	if ts != "" {
-		v.Set("timestamp", ts)
-	}
-
-	url := "http://archive.org/wayback/available?" + v.Encode()
-	res, err := http.Get(url)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	data, err := ioutil.ReadAll(res.Body)
-	res.Body.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var r ArchivedSnapshots
-	if err := json.Unmarshal(data, &r); err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("%v", r)
-}
-
 func savePage(urlstr string) error {
 	client := http.Client{
 		Timeout: time.Duration(20 * time.Second),
@@ -160,11 +104,6 @@ func savePage(urlstr string) error {
 				return fmt.Errorf("resource not found: %v", urlstr)
 			}
 
-			// TODO: according to MDN and RFC 7231 section-7.1.3, a Retry-After
-			// response header may be sent with 301 (Moved Permanently), 429
-			// (Too Many Requests) and 503 (Service Unavailable) but some
-			// services by convention, return rate-limit headers prefixed by
-			// "X-".
 			if resp.StatusCode == 429 || resp.StatusCode == 503 {
 				n, _ := strconv.Atoi(resp.Header.Get("Retry-After"))
 				if n > 0 {
